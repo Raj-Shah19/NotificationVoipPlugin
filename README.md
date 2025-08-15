@@ -1,5 +1,3 @@
-
-```markdown
 # notification_voip_plugin
 
 A Flutter plugin for handling notifications and VoIP events on **Android** and **iOS**.
