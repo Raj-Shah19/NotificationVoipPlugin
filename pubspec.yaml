@@ -1,11 +1,13 @@
 name: notification_voip_plugin
-description: "A new Flutter plugin project."
-version: 0.0.1
-homepage:
+description: "A Flutter plugin for VoIP and notifications with native CallKit UI, APNs/VoIP token management."
+version: 1.0.0
+homepage: https://github.com/Raj-Shah19/NotificationVoipPlugin
+repository: https://github.com/Raj-Shah19/NotificationVoipPlugin
+
 
 environment:
   sdk: ^3.7.2
-  flutter: '>=3.3.0'
+  flutter: '>=3.2.0'
 
 dependencies:
   flutter:
