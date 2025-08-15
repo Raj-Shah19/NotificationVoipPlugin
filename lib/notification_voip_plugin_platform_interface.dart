@@ -8,7 +8,8 @@ abstract class NotificationVoipPluginPlatform extends PlatformInterface {
 
   static final Object _token = Object();
 
-  static NotificationVoipPluginPlatform _instance = MethodChannelNotificationVoipPlugin();
+  static NotificationVoipPluginPlatform _instance =
+      MethodChannelNotificationVoipPlugin();
 
   /// The default instance of [NotificationVoipPluginPlatform] to use.
   ///
