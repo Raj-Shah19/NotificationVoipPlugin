@@ -327,6 +327,7 @@ public class CallHandler: NSObject, CXProviderDelegate {
     /// Report a dummy incoming call and immediately end it.
     /// Required by iOS 13+ when a PushKit push arrives but we don't
     /// want to show the call UI (e.g. cancelled/ended/busy payloads).
+    /// Uses reportCall(with:endedAt:reason:) to avoid any UI flash.
     func reportAndImmediatelyEndCall(callId: String, completion: @escaping () -> Void) {
         setupCallKit()
 
@@ -344,17 +345,12 @@ public class CallHandler: NSObject, CXProviderDelegate {
         update.supportsUngrouping = false
         update.supportsDTMF = false
 
-        provider.reportNewIncomingCall(with: uuid, update: update) { [weak self] error in
+        provider.reportNewIncomingCall(with: uuid, update: update) { error in
             if error == nil {
-                // Immediately end the call so the user never sees it
-                let endAction = CXEndCallAction(call: uuid)
-                let transaction = CXTransaction(action: endAction)
-                self?.callController.request(transaction) { _ in
-                    completion()
-                }
-            } else {
-                completion()
+                // Immediately report the call as ended so no UI is shown.
+                provider.reportCall(with: uuid, endedAt: Date(), reason: .remoteEnded)
             }
+            completion()
         }
     }
 
@@ -375,7 +371,12 @@ public class CallHandler: NSObject, CXProviderDelegate {
             if let info = callerInfo[callId] {
                 event.merge(info) { _, new in new }
             }
-            voipEventSink?(event)
+            if let sink = voipEventSink {
+                sink(event)
+            } else {
+                // Buffer the event — Dart engine not ready yet (background/terminated).
+                NotificationVoipPlugin.shared?.pendingCallEvents.append(event)
+            }
             if var state = callStates[callId] {
                 state.status = "connected"
                 state.connectedAt = Date()
@@ -393,7 +394,12 @@ public class CallHandler: NSObject, CXProviderDelegate {
             if let info = callerInfo[callId] {
                 event.merge(info) { _, new in new }
             }
-            voipEventSink?(event)
+            if let sink = voipEventSink {
+                sink(event)
+            } else {
+                // Buffer the event — Dart engine not ready yet (background/terminated).
+                NotificationVoipPlugin.shared?.pendingCallEvents.append(event)
+            }
             if var state = callStates[callId] {
                 state.status = "ended"
                 callStates[callId] = state

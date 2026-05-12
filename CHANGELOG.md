@@ -1,3 +1,25 @@
+## 2.0.1
+
+### New
+
+- None.
+
+### Fixes
+
+- Fixed dummy call dismissal on iOS using `reportCall(with:endedAt:reason:)` instead of `CXEndCallAction` to avoid any brief UI flash when suppressing cancelled/ended/busy VoIP pushes.
+- Fixed call events (`performAnswerCall`, `performEndCall`) being lost when the Dart engine is not ready (background/terminated launch) — events are now buffered in `pendingCallEvents` and flushed once the event sink attaches.
+- Fixed `isVideo` detection for payloads that send a `callType` (or `call_type`) string of `"video"` instead of a boolean flag.
+
+### Deprecations
+
+- None.
+
+### Removals
+
+- None.
+
+---
+
 ## 2.0.0
 
 ### New
