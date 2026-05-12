@@ -127,6 +127,9 @@ public class NotificationVoipPlugin: NSObject, FlutterPlugin {
             isVideo = dict["isVideo"] as? Bool
                 ?? dict["is_video"] as? Bool
                 ?? (dict["video"] as? Bool ?? false)
+            if !isVideo, let callType = dict["callType"] as? String ?? dict["call_type"] as? String {
+                isVideo = (callType == "video")
+            }
             callAction = dict["callAction"] as? String
                 ?? dict["call_action"] as? String
         }
