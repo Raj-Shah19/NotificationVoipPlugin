@@ -16,6 +16,7 @@ export 'src/models/nvp_call_event.dart';
 export 'src/models/nvp_call_config.dart';
 export 'src/models/nvp_call_state.dart';
 export 'src/models/nvp_call_screen_config.dart';
+export 'src/models/nvp_in_app_notification_style.dart';
 
 // UI
 export 'src/ui/nvp_call_screen.dart';

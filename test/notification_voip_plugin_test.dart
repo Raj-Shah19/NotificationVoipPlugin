@@ -30,7 +30,8 @@ class MockNvpPlatform extends NvpPlatformInterface
 
   @override
   Future<bool> showInAppNotification(
-      Map<String, dynamic> notification, Map<String, dynamic>? template) async {
+      Map<String, dynamic> notification, Map<String, dynamic>? template,
+      [Map<String, dynamic>? style]) async {
     return true;
   }
 
@@ -112,8 +113,8 @@ class ThrowingNvpPlatform extends NvpPlatformInterface
       throw Exception('fail');
 
   @override
-  Future<bool> showInAppNotification(
-          Map<String, dynamic> n, Map<String, dynamic>? t) async =>
+  Future<bool> showInAppNotification(Map<String, dynamic> n,
+          Map<String, dynamic>? t, [Map<String, dynamic>? s]) async =>
       throw Exception('fail');
 
   @override

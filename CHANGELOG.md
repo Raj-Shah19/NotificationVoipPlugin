@@ -1,3 +1,30 @@
+## 2.1.0
+
+### New
+
+- `NvpInAppNotificationStyle` + `showInAppNotification(style:)` — customize the in-app banner's `backgroundColor` and `textColor`. Both are optional; when omitted the banner uses light/dark-mode-aware defaults (white/black in light mode, `#2C2C2E`/white in dark). Implemented on iOS and Android.
+- `NvpConfig.suppressForegroundNotifications` and `NvpConfig.suppressForegroundVoIP` — suppress foreground notification display / the foreground CallKit incoming-call UI so the host app can present its own in-app UI. Honored natively on iOS (`willPresent` returns no options; foreground VoIP pushes are reported-and-immediately-ended for PushKit compliance without showing CallKit).
+- Swift Package Manager support — the plugin now ships `Package.swift` for iOS and macOS (dual SPM + CocoaPods support).
+
+### Changes
+
+- **Android: migrated to Flutter's built-in Kotlin.** `android/build.gradle` now uses the `plugins {}` block and top-level `kotlin.compilerOptions` instead of the legacy Kotlin Gradle Plugin classpath / `apply plugin` / `android.kotlinOptions{}`. **This requires consuming apps to use Kotlin 2.x** (the default in modern Flutter). Apps still pinned to Kotlin < 2.0 must bump their Kotlin version.
+- iOS `PrivacyInfo.xcprivacy` is now packaged (via the podspec `resource_bundles` and the Swift package resources).
+
+### Fixes
+
+- None.
+
+### Deprecations
+
+- None.
+
+### Removals
+
+- None.
+
+---
+
 ## 2.0.1
 
 ### New

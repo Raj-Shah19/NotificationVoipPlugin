@@ -67,10 +67,12 @@ class NvpMethodChannel extends NvpPlatformInterface {
 
   @override
   Future<bool> showInAppNotification(
-      Map<String, dynamic> notification, Map<String, dynamic>? template) async {
+      Map<String, dynamic> notification, Map<String, dynamic>? template,
+      [Map<String, dynamic>? style]) async {
     final result = await _channel.invokeMethod<bool>('showInAppNotification', {
       'notification': notification,
       'template': template,
+      'style': style,
     });
     return result ?? false;
   }
