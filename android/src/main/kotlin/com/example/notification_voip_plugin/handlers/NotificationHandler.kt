@@ -18,9 +18,14 @@ import android.view.ViewGroup
 import android.widget.FrameLayout
 import android.widget.ImageView
 import android.widget.TextView
+import android.content.res.Configuration
+import android.graphics.Color
+import android.graphics.drawable.GradientDrawable
+import androidx.cardview.widget.CardView
 import androidx.core.app.NotificationCompat
 import androidx.core.app.RemoteInput
 import androidx.core.content.ContextCompat
+import androidx.core.graphics.ColorUtils
 import io.flutter.plugin.common.EventChannel
 import io.flutter.plugin.common.MethodCall
 import io.flutter.plugin.common.MethodChannel
@@ -46,6 +51,14 @@ class NotificationHandler(private val context: Context) {
     // Track badge count
     private var badgeCount: Int = 0
     private val BADGE_NOTIFICATION_ID = 0x42424242
+
+    companion object {
+        // In-app banner defaults, per system light/dark mode
+        private val DEFAULT_BANNER_BG_LIGHT = Color.WHITE
+        private val DEFAULT_BANNER_BG_DARK = 0xFF2C2C2E.toInt()
+        private val DEFAULT_BANNER_TEXT_LIGHT = Color.BLACK
+        private val DEFAULT_BANNER_TEXT_DARK = Color.WHITE
+    }
 
     fun configure(config: Map<String, Any>?) {
         config?.let {
@@ -276,14 +289,21 @@ class NotificationHandler(private val context: Context) {
             val data = notification["data"] as? Map<*, *> ?: emptyMap<String, Any>()
             val imageUrl = notification["imageUrl"] as? String
 
-            showOverlayBanner(title, body, data, imageUrl)
+            val style = args["style"] as? Map<*, *>
+            val backgroundColor = (style?.get("backgroundColor") as? Number)?.toLong()?.toInt()
+            val textColor = (style?.get("textColor") as? Number)?.toLong()?.toInt()
+
+            showOverlayBanner(title, body, data, imageUrl, backgroundColor, textColor)
             result.success(true)
         } catch (e: Exception) {
             result.error("NOTIFICATION_ERROR", e.message, null)
         }
     }
 
-    private fun showOverlayBanner(title: String, body: String, data: Map<*, *>, imageUrl: String?) {
+    private fun showOverlayBanner(
+        title: String, body: String, data: Map<*, *>, imageUrl: String?,
+        backgroundColor: Int? = null, textColor: Int? = null
+    ) {
         activity?.runOnUiThread {
             try {
                 removeCurrentOverlay()
@@ -297,13 +317,40 @@ class NotificationHandler(private val context: Context) {
                     return@runOnUiThread
                 }
 
+                val isDarkMode = ((activity ?: context).resources.configuration.uiMode and
+                    Configuration.UI_MODE_NIGHT_MASK) == Configuration.UI_MODE_NIGHT_YES
+                val bgColor = backgroundColor
+                    ?: if (isDarkMode) DEFAULT_BANNER_BG_DARK else DEFAULT_BANNER_BG_LIGHT
+                val txtColor = textColor
+                    ?: if (isDarkMode) DEFAULT_BANNER_TEXT_DARK else DEFAULT_BANNER_TEXT_LIGHT
+
                 val titleId = context.resources.getIdentifier("notification_title", "id", context.packageName)
                 val bodyId = context.resources.getIdentifier("notification_body", "id", context.packageName)
                 val avatarId = context.resources.getIdentifier("notification_avatar", "id", context.packageName)
                 val closeId = context.resources.getIdentifier("notification_close", "id", context.packageName)
 
-                notificationView.findViewById<TextView>(titleId)?.text = title
-                notificationView.findViewById<TextView>(bodyId)?.text = body
+                if (notificationView is CardView) {
+                    notificationView.setCardBackgroundColor(bgColor)
+                    // Clear the content row's own background so the card color shows.
+                    (notificationView as? ViewGroup)?.getChildAt(0)?.background = null
+                } else {
+                    val density = context.resources.displayMetrics.density
+                    notificationView.background = GradientDrawable().apply {
+                        cornerRadius = 12 * density
+                        setColor(bgColor)
+                    }
+                }
+
+                notificationView.findViewById<TextView>(titleId)?.apply {
+                    text = title
+                    setTextColor(txtColor)
+                }
+                notificationView.findViewById<TextView>(bodyId)?.apply {
+                    text = body
+                    setTextColor(ColorUtils.setAlphaComponent(txtColor, (0.7f * 255).toInt()))
+                }
+                (notificationView.findViewById<View>(closeId) as? ImageView)
+                    ?.setColorFilter(ColorUtils.setAlphaComponent(txtColor, (0.6f * 255).toInt()))
 
                 val avatarView = notificationView.findViewById<ImageView>(avatarId)
                 if (imageUrl != null && avatarView != null) {

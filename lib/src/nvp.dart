@@ -8,6 +8,7 @@ import 'models/nvp_notification_template.dart';
 import 'models/nvp_call_event.dart';
 import 'models/nvp_call_config.dart';
 import 'models/nvp_call_state.dart';
+import 'models/nvp_in_app_notification_style.dart';
 /// Static-only API for notification_voip_plugin.
 ///
 /// Call [init] once at app start, then use any method. All methods are
@@ -177,13 +178,17 @@ class NotificationVoipPlugin {
   // -- NOTIFICATIONS --
 
   /// Show an in-app banner notification (Flutter overlay).
+  ///
+  /// [style] customizes the banner's background and text colors. When
+  /// omitted, the banner uses light/dark-mode-aware platform defaults.
   static Future<bool> showInAppNotification(
     NvpNotification notification, {
     NvpNotificationTemplate? template,
+    NvpInAppNotificationStyle? style,
   }) async {
     try {
       return await _platform.showInAppNotification(
-        notification.toMap(), template?.toMap());
+        notification.toMap(), template?.toMap(), style?.toMap());
     } catch (e) { _log('showInAppNotification', e); return false; }
   }
 

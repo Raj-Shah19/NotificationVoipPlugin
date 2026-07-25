@@ -81,8 +81,10 @@ class NvpWeb extends NvpPlatformInterface {
 
   @override
   Future<bool> showInAppNotification(
-      Map<String, dynamic> notification, Map<String, dynamic>? template) async {
-    // In-app notifications on web fall back to system notification
+      Map<String, dynamic> notification, Map<String, dynamic>? template,
+      [Map<String, dynamic>? style]) async {
+    // In-app notifications on web fall back to system notification;
+    // style is not applicable there.
     return showNotification(notification, template);
   }
 

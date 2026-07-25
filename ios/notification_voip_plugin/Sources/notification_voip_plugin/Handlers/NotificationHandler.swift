@@ -16,11 +16,17 @@ class NotificationHandler: NSObject, UNUserNotificationCenterDelegate {
     /// to prevent the notification from being displayed.
     var suppressNextForegroundNotification: Bool = false
 
+    /// When true, ALL foreground notifications are suppressed (the host app
+    /// shows its own in-app UI). Set from `NvpConfig.suppressForegroundNotifications`.
+    var suppressAllForegroundNotifications: Bool = false
+
     func configure(config: [String: Any]?) {
         if let duration = config?["bannerDuration"] as? Int {
             bannerDuration = Double(duration) / 1000.0
         }
         appName = config?["appName"] as? String
+        suppressAllForegroundNotifications =
+            config?["suppressForegroundNotifications"] as? Bool ?? false
     }
 
     func showNotification(notification: [String: Any], template: [String: Any]?, result: @escaping FlutterResult) {
@@ -142,14 +148,18 @@ class NotificationHandler: NSObject, UNUserNotificationCenterDelegate {
         }
     }
 
-    func showInAppNotification(notification: [String: Any], result: @escaping FlutterResult) {
+    func showInAppNotification(notification: [String: Any], style: [String: Any]? = nil, result: @escaping FlutterResult) {
         let title = notification["title"] as? String ?? "Notification"
         let body = notification["body"] as? String ?? ""
         let data = notification["data"] as? [String: Any] ?? [:]
         let imageUrl = notification["imageUrl"] as? String
 
+        let backgroundColor = (style?["backgroundColor"] as? NSNumber).map { Self.colorFromARGB($0.int64Value) }
+        let textColor = (style?["textColor"] as? NSNumber).map { Self.colorFromARGB($0.int64Value) }
+
         DispatchQueue.main.async {
-            self.showBanner(title: title, body: body, data: data, imageUrl: imageUrl)
+            self.showBanner(title: title, body: body, data: data, imageUrl: imageUrl,
+                            backgroundColor: backgroundColor, textColor: textColor)
             result(true)
         }
     }
@@ -240,7 +250,7 @@ class NotificationHandler: NSObject, UNUserNotificationCenterDelegate {
         // Give Dart a brief window to call suppressNextForegroundNotification()
         // before we decide whether to show the notification.
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
-            if self.suppressNextForegroundNotification {
+            if self.suppressAllForegroundNotifications || self.suppressNextForegroundNotification {
                 self.suppressNextForegroundNotification = false
                 completionHandler([])
             } else {
@@ -250,7 +260,28 @@ class NotificationHandler: NSObject, UNUserNotificationCenterDelegate {
     }
 
     // MARK: - Banner
-    private func showBanner(title: String, body: String, data: [String: Any], imageUrl: String?) {
+    /// Default banner background: white in light mode, dark gray in dark mode.
+    private static let defaultBannerBackground = UIColor { trait in
+        trait.userInterfaceStyle == .dark
+            ? UIColor(red: 0x2C / 255.0, green: 0x2C / 255.0, blue: 0x2E / 255.0, alpha: 1.0)
+            : .white
+    }
+
+    /// Default banner text: black in light mode, white in dark mode.
+    private static let defaultBannerText = UIColor { trait in
+        trait.userInterfaceStyle == .dark ? UIColor.white : UIColor.black
+    }
+
+    private static func colorFromARGB(_ argb: Int64) -> UIColor {
+        let a = CGFloat((argb >> 24) & 0xFF) / 255.0
+        let r = CGFloat((argb >> 16) & 0xFF) / 255.0
+        let g = CGFloat((argb >> 8) & 0xFF) / 255.0
+        let b = CGFloat(argb & 0xFF) / 255.0
+        return UIColor(red: r, green: g, blue: b, alpha: a)
+    }
+
+    private func showBanner(title: String, body: String, data: [String: Any], imageUrl: String?,
+                            backgroundColor: UIColor? = nil, textColor: UIColor? = nil) {
         currentBanner?.removeFromSuperview()
 
         guard let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
@@ -260,21 +291,29 @@ class NotificationHandler: NSObject, UNUserNotificationCenterDelegate {
         let bannerHeight: CGFloat = 80
         let screenWidth = window.frame.width
 
+        let bgColor = backgroundColor ?? Self.defaultBannerBackground
+        let txtColor = textColor ?? Self.defaultBannerText
+
         let banner = UIView()
         banner.frame = CGRect(x: 8, y: -bannerHeight, width: screenWidth - 16, height: bannerHeight)
-        banner.backgroundColor = UIColor.systemBlue
+        banner.backgroundColor = bgColor
         banner.layer.cornerRadius = 12
-        banner.clipsToBounds = true
+        // Shadow instead of clipsToBounds so the banner stays visible on
+        // same-colored app backgrounds; no subview overflows the corners.
+        banner.layer.shadowColor = UIColor.black.cgColor
+        banner.layer.shadowOpacity = 0.15
+        banner.layer.shadowRadius = 8
+        banner.layer.shadowOffset = CGSize(width: 0, height: 4)
 
         // Avatar
         let avatarView = UIImageView()
         avatarView.frame = CGRect(x: 12, y: 16, width: 48, height: 48)
-        avatarView.backgroundColor = UIColor.white.withAlphaComponent(0.3)
+        avatarView.backgroundColor = txtColor.withAlphaComponent(0.12)
         avatarView.layer.cornerRadius = 24
         avatarView.clipsToBounds = true
         avatarView.contentMode = .scaleAspectFill
         avatarView.image = UIImage(systemName: "person.circle.fill")
-        avatarView.tintColor = .white
+        avatarView.tintColor = txtColor.withAlphaComponent(0.6)
         banner.addSubview(avatarView)
 
         if let imageUrl = imageUrl, let url = URL(string: imageUrl) {
@@ -291,14 +330,14 @@ class NotificationHandler: NSObject, UNUserNotificationCenterDelegate {
         let titleLabel = UILabel()
         titleLabel.frame = CGRect(x: 0, y: 4, width: textContainer.frame.width, height: 20)
         titleLabel.font = UIFont.boldSystemFont(ofSize: 16)
-        titleLabel.textColor = .white
+        titleLabel.textColor = txtColor
         titleLabel.text = title
         textContainer.addSubview(titleLabel)
 
         let bodyLabel = UILabel()
         bodyLabel.frame = CGRect(x: 0, y: 26, width: textContainer.frame.width, height: 32)
         bodyLabel.font = UIFont.systemFont(ofSize: 14)
-        bodyLabel.textColor = UIColor.white.withAlphaComponent(0.9)
+        bodyLabel.textColor = txtColor.withAlphaComponent(0.7)
         bodyLabel.text = body
         bodyLabel.numberOfLines = 2
         textContainer.addSubview(bodyLabel)
@@ -307,7 +346,7 @@ class NotificationHandler: NSObject, UNUserNotificationCenterDelegate {
         let closeButton = UIButton(type: .system)
         closeButton.frame = CGRect(x: screenWidth - 48, y: 16, width: 32, height: 32)
         closeButton.setImage(UIImage(systemName: "xmark.circle.fill"), for: .normal)
-        closeButton.tintColor = UIColor.white.withAlphaComponent(0.8)
+        closeButton.tintColor = txtColor.withAlphaComponent(0.6)
         closeButton.addTarget(self, action: #selector(closeBannerTapped), for: .touchUpInside)
         banner.addSubview(closeButton)
 

@@ -74,7 +74,8 @@ abstract class NvpPlatformInterface extends PlatformInterface {
 
   /// Show an in-app banner notification overlay.
   Future<bool> showInAppNotification(
-      Map<String, dynamic> notification, Map<String, dynamic>? template) {
+      Map<String, dynamic> notification, Map<String, dynamic>? template,
+      [Map<String, dynamic>? style]) {
     throw UnimplementedError(
         'showInAppNotification() has not been implemented.');
   }

@@ -1,6 +1,6 @@
 name: notification_voip_plugin
 description: "A Flutter plugin for notifications (8 templates, grouping) and VoIP calls (CallKit/Telecom, custom Flutter screen) across 6 platforms."
-version: 2.0.1
+version: 2.1.0
 homepage: https://github.com/Raj-Shah19/NotificationVoipPlugin
 repository: https://github.com/Raj-Shah19/NotificationVoipPlugin
 issue_tracker: https://github.com/Raj-Shah19/NotificationVoipPlugin/issues

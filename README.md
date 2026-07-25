@@ -105,6 +105,14 @@ android {
 }
 ```
 
+**Kotlin 2.x required** — as of 2.1.0 this plugin uses Flutter's built-in Kotlin support, so the consuming app must use **Kotlin 2.0 or newer** (the default in recent Flutter). If your app is pinned to an older Kotlin, bump it in `android/settings.gradle(.kts)`:
+
+```kotlin
+plugins {
+    id("org.jetbrains.kotlin.android") version "2.1.0" apply false
+}
+```
+
 **Firebase (for FCM tokens)** — add Google Services plugin to `android/build.gradle`:
 
 ```groovy
@@ -147,6 +155,8 @@ if (!enabled) {
 ```ruby
 platform :ios, '14.0'
 ```
+
+> As of 2.1.0 the plugin supports **Swift Package Manager** (iOS and macOS) in addition to CocoaPods — no extra setup is needed either way.
 
 **Xcode Capabilities** — enable on your Runner target:
 - Push Notifications
@@ -249,6 +259,18 @@ await NotificationVoipPlugin.showNotification(
 ```dart
 await NotificationVoipPlugin.showInAppNotification(
   const NvpNotification(title: 'Alert', body: 'This is a banner overlay'),
+);
+```
+
+**Styled in-app banner** — customize the banner colors (omit `style` for light/dark-mode-aware defaults):
+
+```dart
+await NotificationVoipPlugin.showInAppNotification(
+  const NvpNotification(title: 'Alert', body: 'Custom colors'),
+  style: const NvpInAppNotificationStyle(
+    backgroundColor: Color(0xFF6852D6),
+    textColor: Colors.white,
+  ),
 );
 ```
 
@@ -557,6 +579,8 @@ Plugin configuration passed to `init()`.
 | `defaultTemplate` | `NvpNotificationTemplate` | `normal` | Default notification template. |
 | `callScreenConfig` | `NvpCallScreenConfig` | defaults | Call screen customization. |
 | `defaultGroupKey` | `String?` | `null` | Default group key for notifications. |
+| `suppressForegroundNotifications` | `bool` | `false` | When `true`, notifications are not displayed while the app is in the foreground (host app shows its own in-app UI). On iOS, `willPresent` returns no options. |
+| `suppressForegroundVoIP` | `bool` | `false` | When `true`, foreground VoIP pushes skip the CallKit incoming-call UI (a dummy call is reported and immediately ended for PushKit compliance) and the event is relayed to Dart so the host app can present its own UI. |
 
 Plus 13 optional callbacks: `onBannerTap`, `onBannerDismiss`, `onSystemNotificationTap`, `onCallAnswered`, `onCallDeclined`, `onCallEnded`, `onCallIncoming`, `onCallTimeoutEnded`, `onCallStateChanged`, `onTokenRefresh`, `onPushReceived`, `onChatPayload`, `onCallPayload`.
 
@@ -583,6 +607,15 @@ Plus 13 optional callbacks: `onBannerTap`, `onBannerDismiss`, `onSystemNotificat
 | `sound` | `String?` | Custom sound (iOS: bundle file name, Android: raw resource name). |
 
 Includes `fromMap()`, `toMap()`, and `copyWith()`.
+
+### NvpInAppNotificationStyle
+
+Optional styling for the in-app banner (`showInAppNotification(style:)`). Any field left `null` falls back to a light/dark-mode-aware default (light: white background / black text; dark: `#2C2C2E` background / white text).
+
+| Field | Type | Default | Description |
+|---|---|---|---|
+| `backgroundColor` | `Color?` | `null` | Banner background color. |
+| `textColor` | `Color?` | `null` | Title text color; body, avatar placeholder, and close button are derived from it at reduced opacity. |
 
 ### NvpNotificationTemplate
 

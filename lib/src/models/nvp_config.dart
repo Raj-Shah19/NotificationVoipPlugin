@@ -14,6 +14,19 @@ class NvpConfig {
   final NvpCallScreenConfig callScreenConfig;
   final String? defaultGroupKey;
 
+  /// When true, notifications received while the app is in the foreground
+  /// are NOT displayed by the plugin (the host app shows its own in-app UI
+  /// instead). On iOS, `willPresent` returns empty options; on Android the
+  /// plugin skips showing the notification.
+  final bool suppressForegroundNotifications;
+
+  /// When true, VoIP pushes received while the app is in the foreground
+  /// will NOT show the full CallKit incoming call UI. Instead, a dummy
+  /// call is reported and immediately ended (for PushKit compliance),
+  /// and the event is relayed to Dart where the host app handles it
+  /// (e.g. a WebSocket-driven in-app overlay).
+  final bool suppressForegroundVoIP;
+
   // Overrideable callbacks
   final NvpBannerTapCallback? onBannerTap;
   final NvpBannerDismissCallback? onBannerDismiss;
@@ -38,6 +51,8 @@ class NvpConfig {
     this.defaultTemplate = NvpNotificationTemplate.normal,
     this.callScreenConfig = const NvpCallScreenConfig(),
     this.defaultGroupKey,
+    this.suppressForegroundNotifications = false,
+    this.suppressForegroundVoIP = false,
     this.onBannerTap,
     this.onBannerDismiss,
     this.onSystemNotificationTap,
@@ -62,5 +77,7 @@ class NvpConfig {
         'defaultTemplate': defaultTemplate.toMap(),
         'useNativeCallScreen': callScreenConfig.useNativeCallScreen,
         if (defaultGroupKey != null) 'defaultGroupKey': defaultGroupKey,
+        'suppressForegroundNotifications': suppressForegroundNotifications,
+        'suppressForegroundVoIP': suppressForegroundVoIP,
       };
 }

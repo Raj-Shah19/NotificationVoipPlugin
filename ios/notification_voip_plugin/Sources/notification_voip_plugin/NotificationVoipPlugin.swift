@@ -21,6 +21,10 @@ public class NotificationVoipPlugin: NSObject, FlutterPlugin {
     var pendingNotificationTapEvents: [[String: Any]] = []
     var pendingCallEvents: [[String: Any]] = []
 
+    /// When true, foreground VoIP pushes skip the full CallKit UI and only
+    /// relay the event to Dart. Set via `init` config from Dart.
+    var suppressForegroundVoIP: Bool = false
+
     public static func register(with registrar: FlutterPluginRegistrar) {
         let instance = NotificationVoipPlugin()
         NotificationVoipPlugin.shared = instance
@@ -139,12 +143,23 @@ public class NotificationVoipPlugin: NSObject, FlutterPlugin {
         // must report *something* to CallKit (iOS 13+ PushKit requirement),
         // then immediately end it so no UI is shown to the user.
         if callAction == "initiated" {
-            callHandler.reportIncomingCallFromPush(
-                callId: callId,
-                callerName: callerName,
-                isVideo: isVideo,
-                completion: completion
-            )
+            let isForeground = UIApplication.shared.applicationState == .active
+            if isForeground && suppressForegroundVoIP {
+                // Foreground + suppression: satisfy the PushKit ↔ CallKit
+                // requirement without showing the native call UI, and relay the
+                // event to Dart so the host app shows its own in-app UI.
+                callHandler.reportAndImmediatelyEndCall(
+                    callId: callId,
+                    completion: completion
+                )
+            } else {
+                callHandler.reportIncomingCallFromPush(
+                    callId: callId,
+                    callerName: callerName,
+                    isVideo: isVideo,
+                    completion: completion
+                )
+            }
         } else {
             // If there's already an active call with this ID (e.g. a "cancelled"
             // push for a ringing call), end it through CallKit.
@@ -167,6 +182,7 @@ public class NotificationVoipPlugin: NSObject, FlutterPlugin {
             let config = call.arguments as? [String: Any]
             notificationHandler.configure(config: config)
             callHandler.configure(config: config)
+            suppressForegroundVoIP = config?["suppressForegroundVoIP"] as? Bool ?? false
             result(nil)
 
         // Tokens
@@ -199,7 +215,8 @@ public class NotificationVoipPlugin: NSObject, FlutterPlugin {
         case "showInAppNotification":
             if let args = call.arguments as? [String: Any] {
                 let notification = args["notification"] as? [String: Any] ?? [:]
-                notificationHandler.showInAppNotification(notification: notification, result: result)
+                let style = args["style"] as? [String: Any]
+                notificationHandler.showInAppNotification(notification: notification, style: style, result: result)
             } else {
                 result(FlutterError(code: "INVALID_ARGS", message: "Invalid arguments", details: nil))
             }
